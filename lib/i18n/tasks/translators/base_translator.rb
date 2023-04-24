@@ -130,7 +130,7 @@ module I18n::Tasks
         end
       end
 
-      INTERPOLATION_KEY_RE = /%\{[^}]+}/
+      INTERPOLATION_KEY_RE = /%\{[^\}]+\}|\{\{.*\}\}|\{%.*%\}/.freeze
 
       # @param [String] value
       # @return [String] 'hello, %{name}' => 'hello, <round-trippable string>'
