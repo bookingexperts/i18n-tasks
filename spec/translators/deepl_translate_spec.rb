@@ -4,32 +4,32 @@ require "spec_helper"
 require "i18n/tasks/commands"
 require "deepl"
 
-RSpec.describe "DeepL Translation" do
-  nil_value_test = ["nil-value-key", nil, nil]
+RSpec.describe 'DeepL Translation' do
+  nil_value_test = ['nil-value-key', nil, nil]
 
   text_test = [
-    "key",
+    'key',
     "Hello, %{user} O'Neill! How are you? {{ Check out this Liquid tag, it should not be translated }} " \
-    "{% That applies to this Liquid tag as well %}",
+    '{% That applies to this Liquid tag as well %}',
     "¡Hola, %{user} O'Neill! ¿Qué tal? {{ Check out this Liquid tag, it should not be translated }} " \
-    "{% That applies to this Liquid tag as well %}"
+    '{% That applies to this Liquid tag as well %}'
   ]
 
   html_test_plrl = [
-    "html-key.html.one", "<span>Hello %{count} {{ count }} {% count %}</span>",
-    "<span>Hola %{count} {{ count }} {% count %}</span>"
+    'html-key.html.one', '<span>Hello %{count} {{ count }} {% count %}</span>',
+    '<span>Hola %{count} {{ count }} {% count %}</span>'
   ]
-  array_test = ["array-key", ["Hello.", nil, "", "Goodbye."], ["Hola.", nil, "", "Adiós."]]
-  array_hash_test = ["array-hash-key",
-    [{"hash_key1" => "How are you?"}, {"hash_key2" => nil}, {"hash_key3" => "Well."}],
-    [{"hash_key1" => "¿Qué tal?"}, {"hash_key2" => nil}, {"hash_key3" => "Bien."}]]
-  fixnum_test = ["numeric-key", 1, 1]
-  ref_key_test = ["ref-key", :reference, :reference]
+  array_test      = ['array-key', ['Hello.', nil, '', 'Goodbye.'], ['Hola.', nil, '', 'Adiós.']]
+  array_hash_test = ['array-hash-key',
+                     [{ 'hash_key1' => 'How are you?' }, { 'hash_key2' => nil }, { 'hash_key3' => 'Well.' }],
+                     [{ 'hash_key1' => '¿Qué tal?' }, { 'hash_key2' => nil }, { 'hash_key3' => 'Bien.' }]]
+  fixnum_test     = ['numeric-key', 1, 1]
+  ref_key_test    = ['ref-key', :reference, :reference]
   # this test fails atm due to moving of the bold tag =>  "Hola, <b>%{user} </b> gran O'neill ❤︎ "
   # it could be a bug, but the api also allows to ignore certain tags and there is the new html-markup version which
   # could be used too
-  html_test = ["html-key.html", "Hello, <b>%{user} big O'neill</b> ❤︎", "Hola, <b>%{user} gran O'neill</b> ❤︎"]
-  support_test = ["support", "%{model} or similar", "%{model} o similar"]
+  html_test       = ['html-key.html', "Hello, <b>%{user} big O'neill</b> ❤︎", "Hola, <b>%{user} gran O'neill</b> ❤︎"]
+  support_test    = ['support', '%{model} or similar', '%{model} o similar']
 
   describe "real world test" do
     delegate :i18n_task, :in_test_app_dir, :run_cmd, to: :TestCodebase
@@ -42,10 +42,10 @@ RSpec.describe "DeepL Translation" do
       TestCodebase.teardown
     end
 
-    context "with default" do
+    context "command" do
       let(:task) { i18n_task }
 
-      it "translate-missing" do
+      it "works" do # rubocop:disable RSpec/MultipleExpectations
         skip "temporarily disabled on JRuby due to https://github.com/jruby/jruby/issues/4802" if RUBY_ENGINE == "jruby"
         skip "DEEPL_AUTH_KEY env var not set" unless ENV["DEEPL_AUTH_KEY"]
         in_test_app_dir do
@@ -92,6 +92,7 @@ RSpec.describe "DeepL Translation" do
       end
     end
   end
+<<<<<<< HEAD
 
   # Don't expect deepl's answers to be exactly the same each run
   describe "translating Dutch into other languages" do
@@ -219,4 +220,6 @@ RSpec.describe "DeepL Translation" do
       end
     end
   end
+=======
+>>>>>>> 0e79882 (17444 Adjust interpolation regexp to support Liquid tags)
 end
