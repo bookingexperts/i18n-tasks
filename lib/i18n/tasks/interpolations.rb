@@ -6,11 +6,11 @@ module I18n::Tasks
       attr_accessor :variable_regex, :tag_pairs, :tag_with_localized_value_regex
     end
 
-    @variable_regex = /(?<!%)%\{[^}]+\}|\{\{.*?\}\}|\{%.*?%\}/.freeze
+    @variable_regex = /(?<!%)%\{[^}]+\}|\{\{.*?\}\}|\{%.*?%\}/
     @tag_pairs = [
-      ['{{', '}}'],
-      ['%{', '}'],
-      ['{%', '%}']
+      ["{{", "}}"],
+      ["%{", "}"],
+      ["{%", "%}"]
     ].freeze
     @tag_with_localized_value_regex = /\{\{\s?(("[^"]+")|('[^']+'))\s?\|.*?\}\}/
 
@@ -33,6 +33,7 @@ module I18n::Tasks
         end
       end
 
+      result.merge!(unrestored_interpolations(locales: locales))
       result.each { |root| root.data[:type] = :inconsistent_interpolations }
       result
     end
@@ -57,6 +58,23 @@ module I18n::Tasks
       result
     end
 
+    def unrestored_interpolations(locales: nil)
+      locales ||= self.locales
+      result = empty_forest
+
+      locales.each do |locale|
+        data[locale].key_values.each do |key, value|
+          next unless value.is_a?(String)
+          next unless value.include?("!!!!!")
+
+          node = Data::Tree::Node.new(key: key, value: value)
+          result.set(key, node)
+        end
+      end
+
+      result
+    end
+
     def get_normalized_variables_set(string)
       Set.new(string.scan(I18n::Tasks::Interpolations.variable_regex).map { |variable| normalize(variable) })
     end
@@ -64,7 +82,7 @@ module I18n::Tasks
     def normalize(variable)
       normalized = nil
       if (match = variable.match(I18n::Tasks::Interpolations.tag_with_localized_value_regex))
-        variable = variable.sub(match[1], 'localized input')
+        variable = variable.sub(match[1], "localized input")
       end
       I18n::Tasks::Interpolations.tag_pairs.each do |start, end_|
         next unless variable.start_with?(start)
@@ -74,7 +92,7 @@ module I18n::Tasks
         break
       end
 
-      fail 'No start/end tag pair detected' if normalized.nil?
+      fail "No start/end tag pair detected" if normalized.nil?
 
       normalized
     end

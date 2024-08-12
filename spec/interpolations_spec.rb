@@ -25,33 +25,33 @@ RSpec.describe "Interpolations" do
     TestCodebase.teardown
   end
 
-  context 'when using ruby string interpolations' do
-    let(:base_keys) { { 'a' => 'hello %{world}', 'b' => 'foo', 'c' => { 'd' => 'hello %{name}' }, 'e' => 'ok' } }
-    let(:test_keys) { { 'a' => 'hello', 'b' => 'foo %{bar}', 'c' => { 'd' => 'hola %{amigo}' }, 'e' => 'ok' } }
+  context "when using ruby string interpolations" do
+    let(:base_keys) { {"a" => "hello %{world}", "b" => "foo", "c" => {"d" => "hello %{name}"}, "e" => "ok"} }
+    let(:test_keys) { {"a" => "hello", "b" => "foo %{bar}", "c" => {"d" => "hola %{amigo}"}, "e" => "ok"} }
 
-    it 'detects inconsistent interpolations' do
-      wrong  = task.inconsistent_interpolations
+    it "detects inconsistent interpolations" do
+      wrong = task.inconsistent_interpolations
       leaves = wrong.leaves.to_a
 
       expect(leaves.size).to eq 3
-      expect(leaves[0].full_key).to eq 'es.a'
-      expect(leaves[1].full_key).to eq 'es.b'
-      expect(leaves[2].full_key).to eq 'es.c.d'
+      expect(leaves[0].full_key).to eq "es.a"
+      expect(leaves[1].full_key).to eq "es.b"
+      expect(leaves[2].full_key).to eq "es.c.d"
     end
   end
 
-  context 'when using liquid tags' do
+  context "when using liquid tags" do
     let(:base_keys) do
       {
-        a: 'hello {{ world }}',
-        b: 'foo',
+        a: "hello {{ world }}",
+        b: "foo",
         c: {
-          d: 'hello {{ name }}'
+          d: "hello {{ name }}"
         },
-        e: 'ok',
-        f: 'inconsistent {{ whitespace}}',
-        g: 'includes a {% comment %}',
-        h: 'wrong {% comment %}',
+        e: "ok",
+        f: "inconsistent {{ whitespace}}",
+        g: "includes a {% comment %}",
+        h: "wrong {% comment %}",
         i: 'with localized value: {{ "thanks" | owner_invoice }}',
         j: 'with wrong function: {{ "thanks" | owner_invoices }}'
       }
@@ -59,30 +59,30 @@ RSpec.describe "Interpolations" do
 
     let(:test_keys) do
       {
-        a: 'hello',
-        b: 'foo {{ bar }}',
+        a: "hello",
+        b: "foo {{ bar }}",
         c: {
-          d: 'hola {{ amigo }}'
+          d: "hola {{ amigo }}"
         },
-        e: 'ok',
-        f: '{{whitespace }} inconsistentes',
-        g: 'incluye un {% comment %}',
-        h: '{% commentario %} equivocado',
+        e: "ok",
+        f: "{{whitespace }} inconsistentes",
+        g: "incluye un {% comment %}",
+        h: "{% commentario %} equivocado",
         i: 'con valor localizado: {{ "gracias" | owner_invoice }}',
         j: 'con función incorrecta: {{ "thanks" | owner_invoice }}'
       }
     end
 
-    it 'detects inconsistent interpolations' do
-      wrong  = task.inconsistent_interpolations
+    it "detects inconsistent interpolations" do
+      wrong = task.inconsistent_interpolations
       leaves = wrong.leaves.to_a
 
       expect(leaves.size).to eq 5
-      expect(leaves[0].full_key).to eq 'es.a'
-      expect(leaves[1].full_key).to eq 'es.b'
-      expect(leaves[2].full_key).to eq 'es.c.d'
-      expect(leaves[3].full_key).to eq 'es.h'
-      expect(leaves[4].full_key).to eq 'es.j'
+      expect(leaves[0].full_key).to eq "es.a"
+      expect(leaves[1].full_key).to eq "es.b"
+      expect(leaves[2].full_key).to eq "es.c.d"
+      expect(leaves[3].full_key).to eq "es.h"
+      expect(leaves[4].full_key).to eq "es.j"
     end
   end
 end
