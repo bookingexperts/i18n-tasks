@@ -95,6 +95,22 @@ module I18n::Tasks
       result
     end
 
+    def unrestored_interpolations(locales: nil)
+      locales ||= self.locales
+      result = empty_forest
+
+      locales.each do |locale|
+        data[locale].key_values.each do |key, value|
+          next unless value.is_a?(String)
+          next unless value.include?("!!!!!")
+
+          node = Data::Tree::Node.new(key: key, value: value)
+          result.set(key, node)
+        end
+      end
+      result
+    end
+
     def get_normalized_variables_set(string)
       Set.new(string.scan(I18n::Tasks::Interpolations.variable_regex).map { |variable| normalize(variable) })
     end
