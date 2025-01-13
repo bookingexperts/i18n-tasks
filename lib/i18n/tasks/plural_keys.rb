@@ -25,7 +25,7 @@ module I18n::Tasks::PluralKeys
   # @param [String] locale to pull key data from
   # @return [String] the base form if the key is a specific plural form (e.g. apple for apple.many), the key otherwise.
   def depluralize_key(key, locale = base_locale)
-    return key unless PLURAL_KEY_RE.match?(key)
+    return key if !PLURAL_KEY_RE.match?(key)
 
     key_name = last_key_part(key)
     parent_key = key[0..- (key_name.length + 2)]
