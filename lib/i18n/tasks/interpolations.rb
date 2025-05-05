@@ -5,7 +5,7 @@ module I18n::Tasks
     class << self
       attr_accessor :variable_regex, :tag_pairs, :tag_with_localized_value_regex
     end
-    @variable_regex = /(?<!%)%\{[^}]+\}|\{\{.*?\}\}|\{%.*?%\}/.freeze
+    @variable_regex = /(?<!%)%\{[^}]+\}|\{\{.*?\}\}|\{%.*?%\}/
     @tag_pairs = [
       ['{{', '}}'],
       ['%{', '}'],
