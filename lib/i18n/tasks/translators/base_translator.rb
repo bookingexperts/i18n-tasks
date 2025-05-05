@@ -4,6 +4,7 @@ module I18n::Tasks
   module Translators
     class BaseTranslator
       include ::I18n::Tasks::Logging
+
       # @param [I18n::Tasks::BaseTask] i18n_tasks
       def initialize(i18n_tasks)
         @i18n_tasks = i18n_tasks
@@ -108,7 +109,7 @@ module I18n::Tasks
         end
       end
 
-      INTERPOLATION_KEY_RE = /%\{[^}]+\}|\{\{.*?\}\}|\{%.*?%\}/.freeze
+      INTERPOLATION_KEY_RE = /%\{[^}]+\}|\{\{.*?\}\}|\{%.*?%\}/
       UNTRANSLATABLE_STRING = 'X__'
 
       # @param [String] value
@@ -125,10 +126,10 @@ module I18n::Tasks
       # @param [String] translated
       # @return [String] 'hello, <round-trippable string>' => 'hello, %{name}'
       def restore_interpolations(untranslated, translated)
-        return translated if untranslated !~ INTERPOLATION_KEY_RE
+        return translated unless INTERPOLATION_KEY_RE.match?(untranslated)
 
         values = untranslated.scan(INTERPOLATION_KEY_RE)
-        translated.gsub(/#{Regexp.escape(UNTRANSLATABLE_STRING)}\d+/i) do |m|
+        translated.gsub(/#{Regexp.escape(UNTRANSLATABLE_STRING)}\d+/io) do |m|
           values[m[UNTRANSLATABLE_STRING.length..].to_i]
         end
       rescue StandardError => e
