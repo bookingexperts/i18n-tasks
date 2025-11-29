@@ -1,6 +1,8 @@
 ## Unreleased
 
 - `check-prism` makes better comparison between parsers for candidate keys.
+- Rails partials allow relative keys, now it is supported by both Parser and Prism scanners
+  and is covered by tests.
 
 ## v1.1.2
 
