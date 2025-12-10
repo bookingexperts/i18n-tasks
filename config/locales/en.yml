@@ -39,6 +39,7 @@ en:
         data: show locale data
         data_merge: merge locale data with trees
         data_remove: remove keys present in tree from data
+        prune: removes keys from non-base locales that are not present in base locale
         data_write: replace locale data with tree
         eq_base: show translations equal to base value
         find: show where keys are used in the code
@@ -82,6 +83,15 @@ en:
       locale: Locale
       n_more: "%{count} more"
       value: Value
+    prune:
+      title: Pruning keys in %{locales} that are not present in %{base_locale}
+      count:
+        zero: No keys to prune.
+        one: "%{count} key to prune in %{locales}."
+        other: "%{count} keys to prune in %{locales}."
+      pruned:
+        one: "%{count} key pruned from %{locales}."
+        other: "%{count} keys pruned from %{locales}."
     data_stats:
       text: >-
         has %{key_count} keys across %{locale_count} locales. On average, values are %{value_chars_avg}
