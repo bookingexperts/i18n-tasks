@@ -35,8 +35,15 @@ RSpec.describe "DeepL Translation" do
   describe "real world test" do
     delegate :i18n_task, :in_test_app_dir, :run_cmd, to: :TestCodebase
 
+    let(:config) do
+      {base_locale: "en", locales: %w[es], translation: {backend: "deepl"}}
+    end
+
     before do
-      TestCodebase.setup("config/locales/en.yml" => "", "config/locales/es.yml" => "")
+      TestCodebase.setup(
+        "config/locales/en.yml" => "", "config/locales/es.yml" => "",
+        "config/i18n-tasks.yml" => config.to_yaml
+      )
     end
 
     after do
@@ -75,7 +82,7 @@ RSpec.describe "DeepL Translation" do
             }
           })
 
-          run_cmd "translate-missing", "--backend=deepl"
+          run_cmd "translate-missing"
           expect(task.t("common.hello", "es")).to eq(text_test[2])
           expect(task.t("common.hello_plural_html.one", "es")).to eq(html_test_plrl[2])
           expect(task.t("common.array_key", "es")).to eq(array_test[2])
@@ -121,6 +128,38 @@ RSpec.describe "DeepL Translation" do
           ["Hello"],
           "EN",
           "PT-BR",
+          {html_escape: true, ignore_tags: ["i18n"], preserve_formatting: true, tag_handling: "xml"}
+        ).once
+
+        TestCodebase.run_cmd "translate-missing"
+      end
+    end
+  end
+
+  describe "translating variants" do
+    let(:config) do
+      {base_locale: "en", locales: %w[en-US], translation: {backend: "deepl"}}
+    end
+
+    before do
+      TestCodebase.setup(
+        "config/locales/en.yml" => {en: {hello: "Hello"}}.to_yaml, "config/locales/en-US.yml" => "",
+        "config/i18n-tasks.yml" => config.to_yaml
+      )
+    end
+
+    after do
+      TestCodebase.teardown
+    end
+
+    context "when configuration has en=>en-US" do
+      it "uses hack to make source locale DE instead of EN" do
+        skip "DEEPL_AUTH_KEY env var not set" unless ENV["DEEPL_AUTH_KEY"]
+
+        expect(DeepL).to receive(:translate).with(
+          ["Hello"],
+          "DE",
+          "EN-US",
           {html_escape: true, ignore_tags: ["i18n"], preserve_formatting: true, tag_handling: "xml"}
         ).once
 
