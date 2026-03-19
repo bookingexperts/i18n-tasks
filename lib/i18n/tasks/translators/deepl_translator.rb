@@ -25,7 +25,7 @@ module I18n::Tasks::Translators
       results = []
 
       if (glossary = glossary_for(from, to))
-        options.merge!({ glossary_id: glossary.id })
+        options.merge!({glossary_id: glossary.id})
       end
 
       list.each_slice(BATCH_SIZE) do |parts|
@@ -79,9 +79,9 @@ module I18n::Tasks::Translators
 
     # deepl does a better job with interpolations when it doesn't have to deal
     # with <br> tags, so we replace all of them with meaningless asterisk chains
-    BR_REGEXP = %r{(<br\s*/?>\s*)+}i.freeze
-    BR_SINGLE_MARKER = ' *** '
-    BR_DOUBLE_MARKER = ' ***** '
+    BR_REGEXP = %r{(<br\s*/?>\s*)+}i
+    BR_SINGLE_MARKER = " *** "
+    BR_DOUBLE_MARKER = " ***** "
 
     # letting deepl 'read' the interpolations gives better translations (and
     # solves the problem of interpolations getting pushed all the way to the
@@ -103,8 +103,8 @@ module I18n::Tasks::Translators
     NUM_SUBS = %w[17 19 23 29 31 37 41 43 47 53].freeze
 
     def sub_for_handle(handle, index)
-      case handle.gsub(/[^a-z]/, '')
-      when 'count', 'minutes', 'hours'
+      case handle.gsub(/[^a-z]/, "")
+      when "count", "minutes", "hours"
         NUM_SUBS[index % NUM_SUBS.size]
       else
         LETTER_SUBS[index % LETTER_SUBS.size]
@@ -119,7 +119,7 @@ module I18n::Tasks::Translators
         index += 1
         "<var handle=\"#{handle}\" sub=\"#{sub}\">#{sub}</var>"
       end.gsub(BR_REGEXP) do |br|
-        if br.downcase.count('b') == 2
+        if br.downcase.count("b") == 2
           # never more than two <br> in a row, it gets messy
           BR_DOUBLE_MARKER
         else
@@ -153,8 +153,8 @@ module I18n::Tasks::Translators
           # obviously wrong hoping to get some attention and a manual fix
           "!!!!!#{sub.inspect} (#{char.inspect} #{body.inspect})!!!!!"
         end
-      end.gsub(BR_DOUBLE_MARKER, '<br /><br />').gsub(BR_SINGLE_MARKER, '<br />')
-    rescue StandardError => e
+      end.gsub(BR_DOUBLE_MARKER, "<br /><br />").gsub(BR_SINGLE_MARKER, "<br />")
+    rescue => e
       raise_interpolation_error(untranslated, translated, e)
     end
 
