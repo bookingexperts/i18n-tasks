@@ -4,7 +4,7 @@
 # Used in the PrismScanners::Visitor class.
 module I18n::Tasks::Scanners::PrismScanners
   class Root
-    attr_reader(:calls, :translation_calls, :children, :node, :parent, :rails, :file_path)
+    attr_reader(:calls, :translation_calls, :children, :node, :parent, :rails)
 
     def initialize(node: nil, parent: nil, file_path: nil, rails: false)
       @calls = []
@@ -14,6 +14,10 @@ module I18n::Tasks::Scanners::PrismScanners
       @parent = parent
       @rails = rails
       @file_path = file_path
+    end
+
+    def file_path
+      @file_path || @parent&.file_path
     end
 
     def add_child(node)
@@ -30,7 +34,15 @@ module I18n::Tasks::Scanners::PrismScanners
     end
 
     def rails_view?
-      rails && file_path.present? && file_path.include?("app/views/")
+      return false unless rails && file_path.present?
+
+      if file_path.include?("app/views/")
+        true
+      elsif file_path.include?("app/components/")
+        !file_path.end_with?(".rb")
+      else
+        false
+      end
     end
 
     def support_relative_keys?
@@ -43,10 +55,15 @@ module I18n::Tasks::Scanners::PrismScanners
 
     def path
       if rails_view?
-        folder_path = file_path.sub(%r{app/views/}, "").split("/")
+        folder_path = if file_path.include?("app/views/")
+          file_path.sub(%r{app/views/}, "").split("/")
+        else
+          file_path.sub(%r{app/components/}, "").split("/")
+        end
+
         name = folder_path.pop.split(".").first
         # Remove leading underscores from partials
-        name = name[1..] if name.start_with?("_")
+        name = name[1..] if name.start_with?("_") # rubocop:disable Performance/ArraySemiInfiniteRangeSlice
 
         [*folder_path, name]
       else
@@ -132,7 +149,7 @@ module I18n::Tasks::Scanners::PrismScanners
         candidates.map { |c| c.gsub("..", ".") }
       elsif relative_key?
         # For relative keys in views, just append to the full path
-        [base_parts + parent.path + [key[1..]]].flatten.compact.join(".").gsub("..", ".") # rubocop:disable Performance/ChainArrayAllocation
+        [base_parts + parent.path + [key[1..]]].flatten.compact.join(".").gsub("..", ".") # rubocop:disable Performance/ChainArrayAllocation,Performance/ArraySemiInfiniteRangeSlice
       elsif key.start_with?(".")
         [base_parts + [key[1..]]].flatten.compact.join(".").gsub("..", ".") # rubocop:disable Performance/ArraySemiInfiniteRangeSlice,Performance/ChainArrayAllocation
       elsif @candidate_keys.present?
@@ -150,9 +167,18 @@ module I18n::Tasks::Scanners::PrismScanners
       return nil if @options.nil?
       return nil unless @options["scope"]
 
-      fail(ScopeError, "Could not process scope") if @options.key?("scope") && (Array(@options["scope"]).empty? || !Array(@options["scope"]).all? { |s| s.is_a?(String) || s.is_a?(Symbol) })
+      scope_value = @options["scope"]
+      scope_array = Array(scope_value)
 
-      Array(@options["scope"]).join(".")
+      # ArgumentsVisitor returns a Prism::LocalVariableReadNode for local variables.
+      # Scope cannot be resolved if array is empty
+      if scope_value.is_a?(Prism::LocalVariableReadNode) ||
+          scope_array.empty? ||
+          !scope_array.all? { |s| s.is_a?(String) || s.is_a?(Symbol) }
+        fail(ScopeError, "Could not process scope")
+      end
+
+      scope_array.join(".")
     end
 
     def occurrence(file_path)
@@ -302,7 +328,7 @@ module I18n::Tasks::Scanners::PrismScanners
     end
 
     def support_relative_keys?
-      controller? || mailer?
+      controller? || mailer? || view_component?
     end
 
     def support_candidate_keys?
@@ -319,6 +345,10 @@ module I18n::Tasks::Scanners::PrismScanners
 
     def mailer?
       @rails && @node.name.to_s.end_with?("Mailer")
+    end
+
+    def view_component?
+      @rails && file_path.present? && file_path.include?("app/components/")
     end
 
     def path_name
@@ -343,7 +373,11 @@ module I18n::Tasks::Scanners::PrismScanners
     delegate(:support_candidate_keys?, to: :parent)
 
     def path
-      (@parent&.path || []) + [@node.name]
+      if @parent.respond_to?(:view_component?) && @parent.view_component?
+        @parent.path
+      else
+        (@parent&.path || []) + [@node.name]
+      end
     end
 
     def name
