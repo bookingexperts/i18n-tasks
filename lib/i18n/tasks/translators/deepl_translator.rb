@@ -47,7 +47,20 @@ module I18n::Tasks::Translators
     end
 
     def options_for_translate_values(**options)
-      extra_options = @i18n_tasks.translation_config[:deepl_options]&.symbolize_keys || {}
+      extra_options = @i18n_tasks.translation_config[:deepl_options]&.deep_symbolize_keys || {}
+
+      from = options.fetch(:from)
+      to = options.fetch(:to)
+      if target_is_variant_of_source?(from, to)
+        # DeepL does not allow translatinging to a variant of a source (en->en-us).
+        # When doing so, it will return the same translation back.
+        # However, somehow, when specifying that the source language is some other language,
+        # deepl does allow translating it. Choosing German as it well supported language in deepl next to English,
+        # although it probably will not matter.
+        # Quite the weird hack, but as long as it works 🤷
+        target_is_en = to_deepl_target_locale(to).split("-").first == "EN"
+        options[:from] = target_is_en ? "de" : "en"
+      end
 
       extra_options.merge({ignore_tags: %w[i18n]}).merge(options)
     end
@@ -182,6 +195,14 @@ module I18n::Tasks::Translators
       else
         loc.upcase
       end
+    end
+
+    # Checks if the target is a variant of the source. (e.g EN -> EN-GB)
+    def target_is_variant_of_source?(from, to)
+      deepl_source_locale = to_deepl_source_locale(from)
+      deepl_target_locale = to_deepl_target_locale(to)
+
+      deepl_source_locale == deepl_target_locale.split("-").first
     end
 
     # Find the largest glossary given a language pair
