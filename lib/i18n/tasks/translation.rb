@@ -13,20 +13,18 @@ module I18n::Tasks
     # @param [:deepl, :openai, :google, :yandex] backend
     # @return [I18n::Tasks::Tree::Siblings] translated forest
     def translate_forest(forest, from:, backend:)
-      case backend
-      when :deepl
-        Translators::DeeplTranslator.new(self).translate_forest(forest, from)
-      when :google
-        Translators::GoogleTranslator.new(self).translate_forest(forest, from)
-      when :openai
-        Translators::OpenAiTranslator.new(self).translate_forest(forest, from)
-      when :watsonx
-        Translators::WatsonxTranslator.new(self).translate_forest(forest, from)
-      when :yandex
-        Translators::YandexTranslator.new(self).translate_forest(forest, from)
-      else
-        fail CommandError, "invalid backend: #{backend}"
-      end
+      translator_klass =
+        case backend
+        when :deepl   then Translators::DeeplTranslator
+        when :google  then Translators::GoogleTranslator
+        when :openai  then Translators::OpenAiTranslator
+        when :watsonx then Translators::WatsonxTranslator
+        when :yandex  then Translators::YandexTranslator
+        when :custom  then translation_config[:custom_backend].constantize
+        else
+          fail CommandError, "invalid backend: #{backend}"
+        end
+      translator_klass.new(self).translate_forest(forest, from)
     end
   end
 end
