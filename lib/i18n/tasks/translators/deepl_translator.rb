@@ -9,6 +9,12 @@ module I18n::Tasks::Translators
     # those languages must be specified with their sub-kind e.g en-us
     SPECIFIC_TARGETS = %w[en pt].freeze
 
+    # custom instruction in order to translate from e.g. en->en-us
+    VARIANT_CUSTOM_INSTRUCTION = <<~PROMPT.gsub(/[[:space:]]+/, " ").strip
+      Apply %{variant_name} spelling and vocabulary conventions.
+      Preserve the original phrasing, sentence structure, and tone exactly.
+    PROMPT
+
     def initialize(*)
       begin
         require "deepl"
@@ -24,16 +30,14 @@ module I18n::Tasks::Translators
     def translate_values(list, from:, to:, **options)
       results = []
 
-      if (glossary = glossary_for(from, to))
-        options.merge!({glossary_id: glossary.id})
-      end
-
       list.each_slice(BATCH_SIZE) do |parts|
+        deepl_source_locale = to_deepl_source_locale(from)
+        deepl_target_locale = to_deepl_target_locale(to)
         res = DeepL.translate(
           parts,
-          to_deepl_source_locale(from),
-          to_deepl_target_locale(to),
-          options_with_glossary(options, from, to)
+          deepl_source_locale,
+          deepl_target_locale,
+          options_with_glossary(options, deepl_source_locale, deepl_target_locale)
         )
         if res.is_a?(DeepL::Resources::Text)
           results << res.text
@@ -51,15 +55,20 @@ module I18n::Tasks::Translators
 
       from = options.fetch(:from)
       to = options.fetch(:to)
+
       if target_is_variant_of_source?(from, to)
         # DeepL does not allow translatinging to a variant of a source (en->en-us).
         # When doing so, it will return the same translation back.
-        # However, somehow, when specifying that the source language is some other language,
-        # deepl does allow translating it. Choosing German as it well supported language in deepl next to English,
-        # although it probably will not matter.
-        # Quite the weird hack, but as long as it works 🤷
-        target_is_en = to_deepl_target_locale(to).split("-").first == "EN"
-        options[:from] = target_is_en ? "de" : "en"
+        # However, when specifying custom instructions pleading to still translate it, it works. #prompengineering
+        variant_names = {
+          "en-US": "American English",
+          "en-GB": "British English"
+        }
+        if variant_names.keys.include?(to.to_sym)
+          options[:custom_instructions] ||= []
+          variant_name = variant_names.fetch(to.to_sym)
+          options[:custom_instructions] << VARIANT_CUSTOM_INSTRUCTION % {variant_name:}
+        end
       end
 
       extra_options.merge({ignore_tags: %w[i18n]}).merge(options)
@@ -70,7 +79,7 @@ module I18n::Tasks::Translators
     end
 
     def options_for_plain
-      {preserve_formatting: true, tag_handling: "xml", html_escape: true}
+      {preserve_formatting: true, tag_handling: "xml", html_escape: true, tag_handling_version: "v2"}
     end
 
     # @param [String] value
@@ -205,13 +214,6 @@ module I18n::Tasks::Translators
       deepl_source_locale == deepl_target_locale.split("-").first
     end
 
-    # Find the largest glossary given a language pair
-    def glossary_for(source, target)
-      DeepL.glossaries.list.select do |glossary|
-        glossary.source_lang == source && glossary.target_lang == target
-      end.max_by(&:entry_count)
-    end
-
     def configure_api_key!
       api_key = @i18n_tasks.translation_config[:deepl_api_key]
       host = @i18n_tasks.translation_config[:deepl_host]
@@ -227,9 +229,9 @@ module I18n::Tasks::Translators
 
     # The Free API endpoint doesn’t expose glossaries via DeepL.glossaries.list,
     # so if no API-backed glossary is found, fall back to the first ID from i18n-config.yml.
-    def options_with_glossary(options, from, to)
+    def options_with_glossary(options, deepl_source, deepl_target)
       configured = @i18n_tasks.translation_config[:deepl_glossary_ids]
-      gid = find_glossary(from, to)&.id || configured&.first
+      gid = find_glossary(deepl_source, deepl_target)&.id || configured&.first
       gid ? {glossary_id: gid}.merge(options) : options
     end
 
@@ -237,16 +239,17 @@ module I18n::Tasks::Translators
       @all_ready_glossaries ||= DeepL.glossaries.list
     end
 
-    def find_glossary(from, to)
-      config_glossary_ids = @i18n_tasks.translation_config[:deepl_glossary_ids]
-      return unless config_glossary_ids
-
+    def find_glossary(deepl_source, deepl_target)
       all_ready_glossaries.find do |glossary|
         glossary.ready \
-          && glossary.source_lang == from \
-          && glossary.target_lang == to \
-          && config_glossary_ids.include?(glossary.id)
+          && glossary.source_lang.upcase == deepl_source \
+          && glossary.target_lang.upcase == deepl_target \
+          && is_bex_base_glossary?(glossary.name)
       end
+    end
+
+    def is_bex_base_glossary?(glossary_name)
+      glossary_name.start_with?("BEX Base Glossary")
     end
   end
 end
