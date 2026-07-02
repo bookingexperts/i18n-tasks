@@ -79,7 +79,7 @@ module I18n::Tasks::Translators
     end
 
     def options_for_plain
-      {preserve_formatting: true, tag_handling: "xml", html_escape: true}
+      {preserve_formatting: true, tag_handling: "xml", html_escape: true, tag_handling_version: "v2"}
     end
 
     # @param [String] value
