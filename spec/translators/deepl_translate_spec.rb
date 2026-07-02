@@ -153,14 +153,20 @@ RSpec.describe "DeepL Translation" do
     end
 
     context "when configuration has en=>en-US" do
-      it "uses hack to make source locale DE instead of EN" do
+      it "uses custom instruction to make plead to DeepL when translating to variants" do
         skip "DEEPL_AUTH_KEY env var not set" unless ENV["DEEPL_AUTH_KEY"]
 
         expect(DeepL).to receive(:translate).with(
           ["Hello"],
-          "DE",
+          "EN",
           "EN-US",
-          {html_escape: true, ignore_tags: ["i18n"], preserve_formatting: true, tag_handling: "xml"}
+          {
+            html_escape: true,
+            ignore_tags: ["i18n"],
+            preserve_formatting: true,
+            tag_handling: "xml",
+            custom_instructions: [I18n::Tasks::Translators::DeeplTranslator::VARIANT_CUSTOM_INSTRUCTION % {variant_name: "American English"}]
+          }
         ).once
 
         TestCodebase.run_cmd "translate-missing"
