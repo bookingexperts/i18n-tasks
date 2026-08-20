@@ -71,7 +71,7 @@ module I18n::Tasks::Translators
         end
       end
 
-      extra_options.merge({ignore_tags: %w[i18n]}).merge(options)
+      extra_options.merge({ignore_tags: %w[i18n var]}).merge(options)
     end
 
     def options_for_html
